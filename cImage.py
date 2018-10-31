@@ -1,11 +1,11 @@
 """
 image.py
-This module provides a simple interface to create a window, load an image and experiment
+This module provides a simple interface to create a window, load an image and experiment 
 with image based algorithms.  Many of which require pixel-by-pixel manipulation.  This
-is a educational module, its not intended to replace the excellent Python Image Library, in fact
+is a educational module, its not intended to replace the excellent Python Image Library, in fact 
 it uses PIL.
 
-The module and its interface and some of the code were inspired/copied by/from John Zelle's graphics.py
+The module and its interface and some of the code were inspired/copied by/from John Zelle's graphics.py 
 which serves a similar purpose in the graphics primitive world.
 """
 
@@ -36,22 +36,6 @@ which serves a similar purpose in the graphics primitive world.
 #   Modify all code so that if PIL is not available then image.py will still
 #   function using Tkimages.  N.B.  Tk restricts image types to gif or ppm
 #
-# Andrew Mertz, Eastern Illinois University
-# October 2014
-# Changes:
-#   Negative indices can be used in Pixel's  __getitem__ function
-#   Pixel's __getitem__ function now supports looping i.e. for value in Pixel(0, 1, 2):
-#
-# Giovanni Moretti, Massey University, Palmerston North, New Zealand
-# April 2015
-# Changes:
-# Added _imroot.lift() to ensure that pictures aren't hidden under other Windows
-# (needed on Windows 7 & Python 3.4. Ubuntu 14.04 was fine without it).
-#
-# version 1.4 
-# Brad Miller
-# distribute on pypi
-#
 
 try:
     import tkinter
@@ -60,8 +44,8 @@ except:
 
 pilAvailable = True
 try:
-    from PIL import Image as PIL_Image
-    from PIL import ImageTk
+    import Image
+    import ImageTk
 except:
     pilAvailable = False
 
@@ -73,36 +57,20 @@ tk = tkinter
 _imroot = tk.Tk()
 _imroot.withdraw()
 
-# Make sure the displayed window is on top - otherwise drawing can appear to fail.
-# The _imroot.lift() call was required on Windows 7 - Linux was fine without it
-# not sure about Mac, but there are some tips at
-# http://stackoverflow.com/questions/8691655/how-to-put-a-tkinter-window-on-top-of-the-others
-_imroot.lift()
-#_imroot.call('wm', 'attributes', '.', '-topmost', True)
-#_imroot.after_idle(_imroot.call, 'wm', 'attributes', '.', '-topmost', False)
-
-
 def formatPixel(data):
     if type(data) == tuple:
         return '{#%02x%02x%02x}'%data
     elif isinstance(data,Pixel):
         return '{#%02x%02x%02x}'%data.getColorTuple()
-
+    
 class ImageWin(tk.Canvas):
     """
     ImageWin:  Make a frame to display one or more images.
     """
-    def __init__(self,title="image window",width=640,height=640):
+    def __init__(self,title,width,height):        
         """
         Create a window with a title, width and height.
         """
-        if title.isnumeric():
-            print("""There are three possible parameters:
-1 - the title
-2 - width
-3 - height
-If you are not using keywords, make sure they are in that order.
-""")
         master = tk.Toplevel(_imroot)
         master.protocol("WM_DELETE_WINDOW", self._close)
         #super(ImageWin, self).__init__(master, width=width, height=height)
@@ -126,7 +94,7 @@ If you are not using keywords, make sure they are in that order.
         self.master.destroy()
         self.quit()
         _imroot.update()
-
+        
     def getMouse(self):
         """Wait for mouse click and return a tuple with x,y position in screen coordinates after
         the click"""
@@ -143,17 +111,14 @@ If you are not using keywords, make sure they are in that order.
         self.mouseX = e.x
         self.mouseY = e.y
         if self._mouseCallback:
-            self._mouseCallback(e.x, e.y)
-
+            self._mouseCallback(Point(e.x, e.y)) 
+            
     def exitOnClick(self):
         """When the Mouse is clicked close the window and exit"""
         self.getMouse()
         self._close()
 
-    def exitonclick(self):
-        self.exitOnClick()
-
-
+    
 class Pixel(object):
     """This simple class abstracts the RGB pixel values."""
     def __init__(self, red, green, blue):
@@ -162,15 +127,15 @@ class Pixel(object):
         self.__green = green
         self.__blue = blue
         self.max = 255
-
+        
     def getRed(self):
         """Return the red component of the pixel"""
         return self.__red
-
+        
     def getGreen(self):
         """Return the green component of the pixel"""
         return self.__green
-
+        
     def getBlue(self):
         """Return the blue component of the pixel"""
         return self.__blue
@@ -206,16 +171,14 @@ class Pixel(object):
            1 --> green
            2 --> blue
         """
-        if isinstance(key, slice):
-            raise TypeError("Slicing is not supported")
-        if key == 0 or key == -3:
+        if key == 0:
             return self.__red
-        elif key == 1 or key == -2:
+        elif key == 1:
             return self.__green
-        elif key == 2 or key == -1:
+        elif key == 2:
             return self.__blue
         else:
-            raise IndexError("Error %d Index out of range" % key)
+            raise ValueError("Error %d Index out of range" % key)
 
     def setRange(self,pmax):
         """docstring for setRange"""
@@ -225,10 +188,10 @@ class Pixel(object):
             self.max = 255
         else:
             raise ValueError("Error range must be 1.0 or 256")
-
+            
     def __str__(self):
         return str(self.getColorTuple())
-
+        
     def __repr__(self):
         """docstring for __repr__"""
         return str(self.getColorTuple())
@@ -236,7 +199,7 @@ class Pixel(object):
     red = property(getRed, setRed, None, "I'm the red property.")
     green = property(getGreen, setGreen, None, "I'm the green property.")
     blue = property(getBlue, setBlue, None, "I'm the blue property.")
-
+        
 class AbstractImage(object):
     """
     Create an image.  The image may be created in one of four ways:
@@ -245,12 +208,11 @@ class AbstractImage(object):
     3. From another image object
     4. By specifying the height and width to create a blank image.
     """
-    imageCache = {} # tk photoimages go here to avoid GC while drawn
+    imageCache = {} # tk photoimages go here to avoid GC while drawn 
     imageId = 1
-
     def __init__(self,fname=None,data=[],imobj=None,height=0,width=0):
         """
-        An image can be created using any of the following keyword parameters. When image creation is
+        An image can be created using any of the following keyword parameters. When image creation is 
         complete the image will be an rgb image.
         fname:  A filename containing an image.  Can be jpg, gif, and others
         data:  a list of lists representing the image.  This might be something you construct by
@@ -284,7 +246,7 @@ class AbstractImage(object):
             self.createBlankImage(height,width)
             for row  in range(height):
                 for col in range(width):
-                    self.setPixel(col,row,Pixel(data[row][col]))
+                    self.setPixel(x,y,Pixel(data[row][col]))
         elif height > 0 and width > 0:
             self.createBlankImage(height,width)
         elif imobj:
@@ -300,7 +262,7 @@ class AbstractImage(object):
         self.id = None
 
     def loadPILImage(self,fname):
-        self.im = PIL_Image.open(fname)
+        self.im = Image.open(fname)
         ni = self.im.convert("RGB")
         self.im = ni
 
@@ -315,7 +277,7 @@ class AbstractImage(object):
         self.im = tkinter.PhotoImage(file=fname)
 
     def createBlankPILImage(self,height,width):
-        self.im = PIL_Image.new("RGB",(width,height))
+        self.im = Image.new("RGB",(width,height))
         ni = self.im.convert("RGB")
         self.im = ni
 
@@ -330,10 +292,10 @@ class AbstractImage(object):
 
 
     def clone(self):
-         """Return a copy of this image"""
-         newI = AbstractImage(imobj=self.im)
-         return newI
-
+	     """Return a copy of this image"""
+	     newI = AbstractImage(imobj=self.im)
+	     return newI
+        
     def getHeight(self):
         """Return the height of the image"""
         return self.height
@@ -341,26 +303,18 @@ class AbstractImage(object):
     def getWidth(self):
         """Return the width of the iamge"""
         return self.width
-
+        
     def getTkPixel(self,x,y):
         """Get a pixel at the given x,y coordinate.  The pixel is returned as an rgb color tuple
-        for example foo.getPixel(10,10) --> (10,200,156) """
-        p = self.im.get(x,y)
-        # p is a string in some tkinter versions; tuple in others.
-        try:
-            p = [int(j) for j in p.split()]
-        except AttributeError:
-            pass
+        for eaxamplle foo.getPixel(10,10) --> (10,200,156) """
+        p = [int(j) for j in self.im.get(x,y)]
         return Pixel(p[0],p[1],p[2])
-
+        
     def setTkPixel(self,x,y,pixel):
-        """Set the color of a pixel at position x,y.  The color must be specified as an rgb tuple (r,g,b) where
+        """Set the color of a pixel at position x,y.  The color must be specified as an rgb tuple (r,g,b) where 
         the rgb values are between 0 and 255."""
-        if x < self.getWidth() and y < self.getHeight():
-            self.im.put(formatPixel(pixel.getColorTuple()),(x,y))
-        else:
-            raise ValueError("Pixel index out of range.")
-
+        self.im.put(formatPixel(pixel.getColorTuple()),(x,y))
+    
     def getPILPixel(self,x,y):
         """docstring for getPILPIxel"""
         p = self.im.getpixel((x,y))
@@ -368,26 +322,20 @@ class AbstractImage(object):
 
     def setPILPixel(self,x,y,pixel):
         """docstring for setPILPixel"""
-        if x < self.getWidth() and y < self.getHeight():
-            self.im.putpixel((x,y),pixel.getColorTuple())
-        else:
-            raise ValueError("Pixel index out of range")
-
+        self.im.putpixel((x,y),pixel.getColorTuple())
+    
     def setPosition(self,x,y):
         """Set the position in the window where the top left corner of the window should be."""
         self.top = y
         self.left = x
         self.centerX = x + (self.width/2)+3
         self.centerY = y + (self.height/2)+3
-
+    
     def getImage(self):
         if pilAvailable:
             return ImageTk.PhotoImage(self.im)
         else:
             return self.im
-
-    def setDelay(numChanges=1,delay=0):
-        pass
 
     def draw(self,win):
         """Draw this image in the ImageWin window."""
@@ -397,7 +345,7 @@ class AbstractImage(object):
         self.canvas=win
         self.id = self.canvas.create_image(self.centerX,self.centerY,image=ig)
         _imroot.update()
-
+        
     def saveTk(self,fname=None,ftype='gif'):
         if fname == None:
             fname = self.imFileName
@@ -412,13 +360,9 @@ class AbstractImage(object):
         if suffix not in ['.gif', '.ppm']:
             raise ValueError("Without PIL, only .gif or .ppm files are allowed")
         try:
-            self.im.write(fname,format=ftype)
-        except IOError as e:
-            print(e)
+            self.im.write(fname,format=ftype)            
+        except:
             print("Error saving, Could Not open ", fname, " to write.")
-        except tkinter.TclError as tke:
-            print(tke)
-            print("gif files can only handle 256 distinct colors")
 
     def savePIL(self,fname=None,ftype='jpg'):
         if fname == None:
@@ -432,7 +376,7 @@ class AbstractImage(object):
             suffix = "."+ftype
             fname = fname+suffix
         try:
-            self.im.save(fname)
+            self.im.save(fname)            
         except:
             print("Error saving, Could Not open ", fname, " to write.")
 
@@ -453,13 +397,11 @@ class FileImage(AbstractImage):
     def __init__(self,thefile):
         super(FileImage, self).__init__(fname = thefile)
 
-class Image(FileImage):
-        pass
 
 class EmptyImage(AbstractImage):
     def __init__(self,cols,rows):
         super(EmptyImage, self).__init__(height = rows, width = cols)
-
+        
 class ListImage(AbstractImage):
     def __init__(self,thelist):
         super(ListImage, self).__init__(data=thelist)
@@ -467,7 +409,7 @@ class ListImage(AbstractImage):
 # Example program  Read in an image and calulate the negative.
 if __name__ == '__main__':
     win = ImageWin("My Window",480,640)
-    oImage = FileImage('lcastle.gif')
+    oImage = FileImage('lcastle.jpg')
     print(oImage.getWidth(), oImage.getHeight())
     oImage.draw(win)
     myImage = oImage.copy()
@@ -483,6 +425,8 @@ if __name__ == '__main__':
     myImage.setPosition(myImage.getWidth()+1,0)
     myImage.draw(win)
     print(win.getMouse())
-    myImage.save('lcastle-inverted.gif')
+    myImage.save('/Users/bmiller/tmp/testfoo.jpg')
     print(myImage.toList())
     win.exitOnClick()
+
+
