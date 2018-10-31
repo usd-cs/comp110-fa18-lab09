@@ -19,7 +19,7 @@ def horizontal_flip(oldimage):
     for row in range(num_rows):
         for col in range(num_cols):
 
-            oldpixel = oldimage.getPixel(col, num_rows - row - 1)
+            oldpixel = oldimage.getPixel(col, (num_rows - 1) - row)
 
             newim.setPixel(col, row, oldpixel)
 
@@ -36,11 +36,11 @@ def flip_test(imageFile):
     Code to test the horizontal_flip function.
     """
     old_image = FileImage(imageFile)
-    image_window = ImageWin("Image Processing", old_image.getWidth(), old_image.getHeight())
+    image_window = ImageWin("Before Flip", old_image.getWidth(), old_image.getHeight())
     old_image.draw(image_window)
 
     flip_image = horizontal_flip(old_image)
-    flip_image_window = ImageWin("Image Processing",
+    flip_image_window = ImageWin("After Horizontal Flip",
                                  flip_image.getWidth(), flip_image.getHeight())
     flip_image.draw(flip_image_window)
 
